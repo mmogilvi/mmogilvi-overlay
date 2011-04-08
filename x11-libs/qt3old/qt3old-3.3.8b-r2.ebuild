@@ -40,6 +40,8 @@ RDEPEND="
 	postgres? ( virtual/postgresql-base )
 	xinerama? ( x11-libs/libXinerama )"
 DEPEND="${RDEPEND}
+	!<x11-libs/qt-4.0
+	!<x11-libs/qt-meta-4.0
 	x11-proto/inputproto
 	x11-proto/xextproto
 	xinerama? ( x11-proto/xineramaproto )

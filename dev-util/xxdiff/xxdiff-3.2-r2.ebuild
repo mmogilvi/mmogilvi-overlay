@@ -14,7 +14,7 @@ SLOT="0"
 KEYWORDS="alpha amd64 ia64 ppc sparc x86 ~x86-fbsd"
 IUSE="python debug"
 
-COMMON_DEPEND="x11-libs/qt:3"
+COMMON_DEPEND="x11-libs/qt3old:3"
 RDEPEND="${COMMON_DEPEND}
 	sys-apps/diffutils"
 DEPEND="${COMMON_DEPEND}
