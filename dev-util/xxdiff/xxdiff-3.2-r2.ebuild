@@ -3,7 +3,8 @@
 # $Header: /var/cvsroot/gentoo-x86/dev-util/xxdiff/Attic/xxdiff-3.2-r1.ebuild,v 1.9 2010/01/23 14:24:23 ssuominen dead $
 
 EAPI=1
-inherit distutils eutils toolchain-funcs qt3
+#inherit distutils eutils toolchain-funcs qt3
+inherit eutils toolchain-funcs qt3
 
 DESCRIPTION="A graphical file and directories comparator and merge tool."
 HOMEPAGE="http://furius.ca/xxdiff/"
@@ -12,7 +13,8 @@ SRC_URI="mirror://sourceforge/${PN}/${P}.tar.bz2"
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="alpha amd64 ia64 ppc sparc x86 ~x86-fbsd"
-IUSE="python debug"
+#IUSE="python debug"
+IUSE="debug"
 
 COMMON_DEPEND="x11-libs/qt3old:3"
 RDEPEND="${COMMON_DEPEND}
@@ -38,7 +40,7 @@ src_unpack() {
 }
 
 src_compile() {
-	use python && distutils_src_compile
+	#use python && distutils_src_compile
 
 	cd src
 	emake -f Makefile.bootstrap makefile || die
@@ -53,7 +55,7 @@ src_compile() {
 }
 
 src_install () {
-	use python && distutils_src_install
+	#use python && distutils_src_install
 	dobin bin/xxdiff bin/xx-cvs-diff bin/xx-encrypted bin/xx-find-grep-sed bin/xx-match
 	doman src/xxdiff.1
 	dodoc README CHANGES TODO
