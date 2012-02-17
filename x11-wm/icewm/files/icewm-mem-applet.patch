@@ -1,6 +1,6 @@
-commit d4b78858a245bd09f6260444923566c4c2c55902
-Author: Matthew Ogilvie <mmogilvi_git@miniinfo.net>
-Date:   Wed Feb 15 23:55:36 2012 -0700
+commit 3d358082141af19fadb2204d2340b02c4997661b
+Author: Matthew Ogilvie <mmogilvi_ice@miniinfo.net>
+Date:   Fri Feb 17 17:52:11 2012 -0700
 
     Add memory status monitor applet.
 
@@ -413,7 +413,7 @@ index e967e64..02460c0 100644
      OIV("TaskBarNetDelay",                      &taskBarNetDelay, 10, (60*60*1000),    "Delay between Net Monitor samples in ms"),
      OIV("TaskbarButtonWidthDivisor",            &taskBarButtonWidthDivisor, 1, 25, "default number of tasks in taskbar"),
 diff --git a/src/themable.h b/src/themable.h
-index ad6a7ce..4f6a2e4 100644
+index ad6a7ce..383d776 100644
 --- a/src/themable.h
 +++ b/src/themable.h
 @@ -140,6 +140,10 @@ XSV(const char *, clrCpuIoWait,                 "rgb:60/00/60")
@@ -435,7 +435,7 @@ index ad6a7ce..4f6a2e4 100644
 +    OSV("ColorMEMStatusUser",                   &clrMemUser,                    "User program usage in the memory monitor"),
 +    OSV("ColorMEMStatusBuffers",                &clrMemBuffers,                 "OS buffers usage in the memory monitor"),
 +    OSV("ColorMEMStatusCached",                 &clrMemCached,                  "OS cached usage in the memory monitor"),
-+    OSV("ColorMEMStatusCached",                 &clrMemFree,                    "Free memory in the memory monitor"),
++    OSV("ColorMEMStatusFree",                   &clrMemFree,                    "Free memory in the memory monitor"),
 +#endif    
  #ifdef CONFIG_APPLET_NET_STATUS
      OSV("ColorNetSend",                         &clrNetSend,                    "Outgoing load on the network monitor"),
