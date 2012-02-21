@@ -65,7 +65,7 @@ src_unpack() {
 	#Fixing gnome2 support
 	epatch "${FILESDIR}/${P}-gnome2.patch"
 
-	epatch "${FILESDIR}/icewm-mem-applet.patch"
+	epatch "${FILESDIR}/icewm-1.2.37-addMemoryApplet.patch"
 	eautoconf
 
 	eautoreconf
