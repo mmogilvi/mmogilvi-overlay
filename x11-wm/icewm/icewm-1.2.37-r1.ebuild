@@ -64,6 +64,8 @@ src_unpack() {
 	cd "${S}"
 	#Fixing gnome2 support
 	epatch "${FILESDIR}/${P}-gnome2.patch"
+	# build fix for libX11-1.5.0, bug 420773
+	epatch "${FILESDIR}"/${PN}-1.2.37-libX11-1.5.0-deprecated.patch
 
 	epatch "${FILESDIR}/icewm-1.2.37-addMemoryApplet.patch"
 	eautoconf
