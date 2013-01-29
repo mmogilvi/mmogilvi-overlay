@@ -20,7 +20,7 @@ SLOT="0"
 
 KEYWORDS="~alpha amd64 ppc ~ppc64 sparc x86"
 
-IUSE="esd gnome imlib nls truetype xinerama minimal debug"
+IUSE="gnome imlib nls truetype xinerama minimal debug"
 
 RDEPEND="x11-libs/libX11
 	x11-libs/libXrandr
@@ -31,8 +31,8 @@ RDEPEND="x11-libs/libX11
 	x11-libs/libSM
 	x11-libs/libICE
 	xinerama? ( x11-libs/libXinerama )
-	esd? ( media-sound/esound )
-	gnome? ( gnome-base/gnome-desktop:2 )
+	gnome? ( gnome-base/gnome-desktop:2
+		gnome-base/libgnomeui )
 	imlib? ( >=media-libs/imlib-1.9.10-r1 )
 	nls? ( sys-devel/gettext )
 	truetype? ( >=media-libs/freetype-2.0.9 )
@@ -87,7 +87,7 @@ src_compile() {
 		--with-libdir=/usr/share/icewm
 		--with-cfgdir=/etc/icewm
 		--with-docdir=/usr/share/doc/${PF}/html
-		$(use_with esd esd-config /usr/bin/esd-config)
+		--without-esd-config
 		$(use_enable gnome menus-gnome2)
 		$(use_enable nls)
 		$(use_enable nls i18n)

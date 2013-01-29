@@ -1,0 +1,5 @@
+This is Matthew Ogilvie's personally maintained gentoo overlay.
+Mostly custom patches.  Some of them are outdated.
+
+After editting ebuild and files, use the following to update manifest:
+   ebuild foo.ebuild digest
