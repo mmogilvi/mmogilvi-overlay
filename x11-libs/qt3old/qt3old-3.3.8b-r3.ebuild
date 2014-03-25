@@ -1,6 +1,6 @@
-# Copyright 1999-2009 Gentoo Foundation
+# Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/x11-libs/qt/qt-3.3.8b-r2.ebuild,v 1.7 2009/12/03 18:25:47 yngwin Exp $
+# $Header: $
 
 # *** Please remember to update qt3.eclass when revbumping this ***
 
@@ -22,7 +22,7 @@ KEYWORDS="alpha amd64 hppa ia64 ~mips ppc ~ppc64 sparc x86 ~x86-fbsd"
 IUSE="cups debug doc examples firebird ipv6 mysql nas nis odbc opengl postgres sqlite xinerama immqt immqt-bc"
 
 RDEPEND="
-	media-libs/jpeg
+	virtual/jpeg
 	>=media-libs/freetype-2
 	>=media-libs/libmng-1.0.9
 	media-libs/libpng
@@ -37,11 +37,9 @@ RDEPEND="
 	mysql? ( virtual/mysql )
 	nas? ( >=media-libs/nas-1.5 )
 	opengl? ( virtual/opengl virtual/glu )
-	postgres? ( virtual/postgresql-base )
+	postgres? ( dev-db/postgresql-base )
 	xinerama? ( x11-libs/libXinerama )"
 DEPEND="${RDEPEND}
-	!<x11-libs/qt-4.0
-	!<x11-libs/qt-meta-4.0
 	x11-proto/inputproto
 	x11-proto/xextproto
 	xinerama? ( x11-proto/xineramaproto )
@@ -136,7 +134,7 @@ src_unpack() {
 	# Fix CJK script rendering, bug 229567
 	epatch "${FILESDIR}"/qt-3.3.8b-cjk-fix.patch
 
-	# Fix libpng-1.[45] issues
+	# Fix libpng-1.5 issues
 	epatch "${FILESDIR}"/qt-3.3.8-libpng15.patch
 
 	if use immqt || use immqt-bc ; then
@@ -178,6 +176,9 @@ src_unpack() {
 	sed -i -e "s:CXXFLAGS.*=:CXXFLAGS=${CXXFLAGS} :" \
 		   -e "s:LFLAGS.*=:LFLAGS=${LDFLAGS} :" \
 		"${S}"/qmake/Makefile.unix || die
+
+	# error: 'ptrdiff_t' does not name a type
+	epatch "${FILESDIR}"/qt-3.3.8b-gcc-4.6-ptrdiff_t.patch
 }
 
 src_compile() {
