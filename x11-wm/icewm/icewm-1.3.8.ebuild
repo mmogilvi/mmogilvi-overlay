@@ -1,6 +1,6 @@
-# Copyright 1999-2013 Gentoo Foundation
+# Copyright 1999-2014 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/x11-wm/icewm/icewm-1.3.7-r1.ebuild,v 1.6 2013/09/25 17:19:55 ago Exp $
+# $Header: /var/cvsroot/gentoo-x86/x11-wm/icewm/icewm-1.3.8.ebuild,v 1.3 2014/09/23 08:26:09 nimiux Exp $
 
 EAPI=5
 PYTHON_COMPAT=( python{2_6,2_7} )
@@ -14,7 +14,7 @@ SRC_URI="mirror://sourceforge/${PN}/${P/_}.tar.gz"
 
 SLOT="0"
 KEYWORDS="~alpha amd64 ppc ~ppc64 sparc x86"
-IUSE="bidi debug gnome minimal nls truetype uclibc xinerama"
+IUSE="bidi debug gnome minimal nls truetype uclibc xinerama xrandr"
 REQUIRED_USE="gnome? ( ${PYTHON_REQUIRED_USE} )"
 
 # Tests broken in all versions, patches welcome, bug #323907, #389533
@@ -24,6 +24,7 @@ RESTRICT="test"
 S=${WORKDIR}/${P/_}
 
 RDEPEND="
+	x11-libs/gdk-pixbuf:2
 	x11-libs/libX11
 	x11-libs/libXrandr
 	x11-libs/libXext
@@ -61,32 +62,29 @@ pkg_setup() {
 
 src_prepare() {
 	# Fedora patches
-	epatch "${FILESDIR}"/${PN}-menu.patch
+	epatch "${FILESDIR}"/${PN}-1.3.8-menu.patch
 	epatch "${FILESDIR}"/${PN}-toolbar.patch
 	epatch "${FILESDIR}"/${PN}-keys.patch
 	epatch "${FILESDIR}"/${PN}-fribidi.patch
 	epatch "${FILESDIR}"/${PN}-1.3.7-dso.patch
 	epatch "${FILESDIR}"/${PN}-defaults.patch
-	epatch "${FILESDIR}"/${PN}-wmclient.patch
 	epatch "${FILESDIR}"/${PN}-1.3.7-menuiconsize.patch
-	epatch "${FILESDIR}"/${PN}-1.3.7-configurenotify.patch
-	epatch "${FILESDIR}"/${PN}-1.3.7-deprecated.patch
+	epatch "${FILESDIR}"/${PN}-1.3.8-deprecated.patch
 
-	epatch "${FILESDIR}"/${P}-gcc44.patch \
-		"${FILESDIR}"/${P}-gcc47.patch
+	epatch "${FILESDIR}"/${PN}-1.3.7-gcc44.patch
 
 	# Get thermal info from proper locations, bug #452730
 	epatch "${FILESDIR}"/${PN}-1.3.7-thermal.patch
 
 	# Debian patch fixing multiple build issues, like bug #470148
-	epatch "${FILESDIR}"/${PN}-1.3.7-build-fixes.patch
+	epatch "${FILESDIR}"/${PN}-1.3.8-build-fixes.patch
 
-	epatch "${FILESDIR}/icewm-1.3.7-addMemoryApplet.patch"
+	epatch "${FILESDIR}/icewm-1.3.8-addMemoryApplet.patch"
 
-	cd "${S}/src"
-	use uclibc && epatch "${FILESDIR}/${PN}-uclibc.patch"
+	# Fix bug #486710
+	use uclibc && epatch "${FILESDIR}/${P}-uclibc.patch"
 
-	cd "${S}"/ && eautoreconf
+	eautoreconf
 }
 
 src_configure() {
@@ -109,7 +107,33 @@ src_configure() {
 		$(use_enable nls)
 		$(use_enable x86 x86-asm)
 		$(use_enable xinerama)
+		$(use_enable xrandr)
 		--without-esd-config"
+
+	# mogilvie: _NET_WORKAREA window property issues:
+	#  - Spec technically requires requires it to be set:
+	#    http://standards.freedesktop.org/wm-spec/wm-spec-1.3.html
+	#  - It doesn't really make sense in a multi-monitor setup.
+	#     - Although smarter "best effort" could be done than
+	#       icewm does (find common areas across desktops...).
+	#     - There are more complicated properties, not set by icewm,
+	#       nor (I think) used by Qt.
+	#     - See various email threads for icewm and other window
+	#       managers.
+	#  - If xinerama and/or xrandr are enabled, icewem 1.3
+	#    limits _NET_WORKAREA to one monitor.
+	#     - And it seems to have really weird problems if monitor
+	#       order is swapped (at least as used by Qt).
+	#  - Qt popup menu logic constrains menus inside _NET_WORKAREA,
+	#    very unfriendly in multi-monitor setups.
+	#     - I suspect it shouldn't be used for popup menus.
+	#     - Perhaps only used by desktop icons, "alerts" that the
+	#       user didn't click on, and/or other "tool" windows?
+	#     - Not having _NET_WORKAREA set apparently fixes menus.
+	#
+	# WORKAROUND: I currently prefer to layout windows to treat them as
+	# as a single monitor anyways, so I just disable both xinerama and
+	# xrandr.
 
 	CXXFLAGS="${CXXFLAGS}" econf ${myconf}
 
