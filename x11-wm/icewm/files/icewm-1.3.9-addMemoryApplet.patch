@@ -1,56 +1,47 @@
-commit 3d358082141af19fadb2204d2340b02c4997661b
-Author: Matthew Ogilvie <mmogilvi_ice@miniinfo.net>
-Date:   Fri Feb 17 17:52:11 2012 -0700
-
-    Add memory status monitor applet.
-
-diff --git a/configure.in b/configure.in
-index 58f248e..84d80bb 100644
---- a/configure.in
-+++ b/configure.in
-@@ -644,6 +644,7 @@ AC_ARG_ENABLE(lite,
-       AC_DEFINE(CONFIG_TRAY, 		1,	[Window tray])
-       AC_DEFINE(CONFIG_APPLET_MAILBOX,	1,	[Mailbox applet])
-       AC_DEFINE(CONFIG_APPLET_CPU_STATUS,	1,	[CPU status applet])
-+      AC_DEFINE(CONFIG_APPLET_MEM_STATUS,	1,	[Memory status applet])
-       AC_DEFINE(CONFIG_APPLET_NET_STATUS,	1,	[Network status applet])
-       AC_DEFINE(CONFIG_APPLET_CLOCK,	1,	[LCD clock applet])
-       AC_DEFINE(CONFIG_APPLET_APM,	1,	[APM status applet])
-diff --git a/src/Makefile.in b/src/Makefile.in
-index 1b7b07b..ba36267 100644
---- a/src/Makefile.in
-+++ b/src/Makefile.in
-@@ -78,8 +78,8 @@ icewm_OBJS = \
-         themes.o decorate.o browse.o \
-         wmprog.o \
-         atasks.o aworkspaces.o amailbox.o aclock.o acpustatus.o \
--	apppstatus.o aaddressbar.o objbar.o aapm.o atray.o ysmapp.o \
--        yxtray.o \
-+	amemstatus.o apppstatus.o aaddressbar.o objbar.o aapm.o atray.o \
-+        ysmapp.o yxtray.o \
-         $(libitk_OBJS) $(libice_OBJS)
- 
- icesh_LIBS = \
-@@ -130,7 +130,8 @@ icebar_OBJS = \
- 	$(libitk_OBJS) $(libice_OBJS) \
-         wmtaskbar.o \
-         wmprog.o browse.o themes.o wmaction.o \
--	amailbox.o aclock.o acpustatus.o apppstatus.o aaddressbar.o objbar.o
-+	amailbox.o aclock.o acpustatus.o amemstatus.o apppstatus.o \
-+	aaddressbar.o objbar.o
- icewmtray_OBJS = \
- 	$(libitk_OBJS) $(libice_OBJS) yxtray.o icetray.o
- icewmtray_LIBS = \
+diff --git a/configure.ac b/configure.ac
+index dce4f1e..d709200 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -312,6 +312,7 @@ if test x$enable_lite != xyes ; then
+ 	AC_DEFINE([CONFIG_TRAY],[1],[Define for system tray.])
+ 	AC_DEFINE([CONFIG_APPLET_MAILBOX],[1],[Define for mailbox applet.])
+ 	AC_DEFINE([CONFIG_APPLET_CPU_STATUS],[1],[Define for CPU status applet.])
++	AC_DEFINE([CONFIG_APPLET_MEM_STATUS],[1],[Define for memory status applet.])
+ 	AC_DEFINE([CONFIG_APPLET_NET_STATUS],[1],[Define for network status applet.])
+ 	AC_DEFINE([CONFIG_APPLET_CLOCK],[1],[Define for LCD clock applet.])
+ 	AC_DEFINE([CONFIG_APPLET_APM],[1],[Define for APM status applet.])
+diff --git a/src/Makefile.am b/src/Makefile.am
+index af1d390..52e9f0a 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -280,6 +280,8 @@ icewm_SOURCES = \
+ 	aclock.h \
+ 	acpustatus.cc \
+ 	acpustatus.h \
++	amemstatus.cc \
++	amemstatus.h \
+ 	apppstatus.cc \
+ 	apppstatus.h \
+ 	aaddressbar.cc \
+@@ -440,6 +442,8 @@ icebar_SOURCES = \
+ 	aclock.h \
+ 	acpustatus.cc \
+ 	acpustatus.h \
++	amemstatus.cc \
++	amemstatus.h \
+ 	apppstatus.cc \
+ 	apppstatus.h \
+ 	aaddressbar.cc \
 diff --git a/src/amemstatus.cc b/src/amemstatus.cc
 new file mode 100644
-index 0000000..6d07e77
+index 0000000..b7446a5
 --- /dev/null
 +++ b/src/amemstatus.cc
-@@ -0,0 +1,254 @@
+@@ -0,0 +1,260 @@
 +/*
 + * IceWM
 + *
-+ * Copyright (C) 1998-2012 Marko Macek, Matthew Ogilvie
++ * Copyright (C) 1998-2015 Marko Macek, Matthew Ogilvie
 + *
 + * Memory Status
 + */
@@ -69,6 +60,8 @@ index 0000000..6d07e77
 +#include "intl.h"
 +
 +#if defined(linux)
++
++#define USE_PROC_MEMINFO
 +
 +extern ref<YPixmap> taskbackPixmap;
 +
@@ -144,13 +137,13 @@ index 0000000..6d07e77
 +                g.drawLine(i, y-1, i, y-bar);
 +            } else {
 +#ifdef CONFIG_GRADIENTS
-+                ref<YPixbuf> gradient = parent()->getGradient();
++                ref<YImage> gradient = parent()->getGradient();
 +
 +                if (gradient != null)
-+                    g.copyPixbuf(*gradient,
-+                                 this->x() + i, this->y() + y - bar,
-+                                 width(), bar,
-+                                 i, y - bar);
++                    g.drawImage(gradient,
++                                this->x() + i, this->y() + y - bar,
++                                width(), bar,
++                                i, y - bar);
 +                else
 +#endif
 +                    if (taskbackPixmap != null)
@@ -214,12 +207,12 @@ index 0000000..6d07e77
 +    char cachedStr[64];
 +    printAmount(cachedStr, sizeof(cachedStr), cur[MEM_CACHED]);
 +
-+    char *memmsg = strJoin(_("Memory Total: "), totalStr, "\n   ",
-+                           _("Free: "), freeStr, "\n   ",
-+                           _("Cached: "), cachedStr, "\n   ",
-+                           _("Buffers: "), buffersStr, "\n   ",
-+                           _("User: "), userStr,
-+                           NULL );
++    char *memmsg = cstrJoin(_("Memory Total: "), totalStr, "\n   ",
++                            _("Free: "), freeStr, "\n   ",
++                            _("Cached: "), cachedStr, "\n   ",
++                            _("Buffers: "), buffersStr, "\n   ",
++                            _("User: "), userStr,
++                            NULL );
 +    setToolTip(memmsg);
 +    delete [] memmsg;
 +}
@@ -236,6 +229,7 @@ index 0000000..6d07e77
 +
 +unsigned long long MEMStatus::parseField(const char *buf, size_t bufLen,
 +                                         const char *needle) {
++#ifdef USE_PROC_MEMINFO
 +    ptrdiff_t needleLen = strlen(needle);
 +    const char *end = buf + bufLen;
 +    while(buf < end) {
@@ -262,6 +256,7 @@ index 0000000..6d07e77
 +
 +        buf = nl+1;
 +    }
++#endif /*USE_PROC_MEMINFO*/
 +    return 0;
 +}
 +
@@ -273,6 +268,7 @@ index 0000000..6d07e77
 +    }
 +    cur[MEM_FREE] = 1;
 +
++#ifdef USE_PROC_MEMINFO
 +    int fd = open("/proc/meminfo", O_RDONLY);
 +    if (fd == -1)
 +        return;
@@ -298,12 +294,13 @@ index 0000000..6d07e77
 +        user -= cur[j];
 +    }
 +    cur[MEM_USER] = user;
++#endif // USE_PROC_MEMINFO
 +}
 +#endif
 +#endif
 diff --git a/src/amemstatus.h b/src/amemstatus.h
 new file mode 100644
-index 0000000..cfa36f4
+index 0000000..131a4b4
 --- /dev/null
 +++ b/src/amemstatus.h
 @@ -0,0 +1,43 @@
@@ -325,7 +322,7 @@ index 0000000..cfa36f4
 +public:
 +    MEMStatus(YWindow *aParent = 0);
 +    virtual ~MEMStatus();
-+    
++
 +    virtual void paint(Graphics &g, const YRect &r);
 +
 +    virtual bool handleTimer(YTimer *t);
@@ -350,41 +347,27 @@ index 0000000..cfa36f4
 +#endif
 +
 +#endif
-diff --git a/src/config.h.in b/src/config.h.in
-index ce58d3a..793f618 100644
---- a/src/config.h.in
-+++ b/src/config.h.in
-@@ -15,6 +15,9 @@
- /* CPU status applet */
- #undef CONFIG_APPLET_CPU_STATUS
- 
-+/* Memory status applet */
-+#undef CONFIG_APPLET_MEM_STATUS
-+
- /* Mailbox applet */
- #undef CONFIG_APPLET_MAILBOX
- 
 diff --git a/src/default.h b/src/default.h
-index e967e64..02460c0 100644
+index 2c1f577..984e3e0 100644
 --- a/src/default.h
 +++ b/src/default.h
-@@ -58,6 +58,7 @@ XIV(bool, taskBarFullscreenAutoShow,            true)
- XIV(bool, taskBarDoubleHeight,                  false)
- XIV(bool, taskBarWorkspacesLeft,                true)
- XIV(bool, taskBarShowCPUStatus,                 true)
+@@ -70,6 +70,7 @@ XIV(bool, cpustatusShowRamUsage,                true)
+ XIV(bool, cpustatusShowSwapUsage,               true)
+ XIV(bool, cpustatusShowAcpiTemp,                true)
+ XIV(bool, cpustatusShowCpuFreq,                 true)
 +XIV(bool, taskBarShowMEMStatus,                 false)
  XIV(bool, taskBarShowNetStatus,                 true)
  XIV(bool, taskBarLaunchOnSingleClick,           true)
  XIV(bool, taskBarShowCollapseButton,            false)
-@@ -137,6 +138,7 @@ XIV(int, titleRollupButton,                     2)
- XIV(int, msgBoxDefaultAction,                   0)
+@@ -156,6 +157,7 @@ XIV(int, msgBoxDefaultAction,                   0)
  XIV(int, mailCheckDelay,                        30)
  XIV(int, taskBarCPUSamples,                     20)
+ XIV(int, taskBarApmGraphWidth,                  10) // hatred
 +XIV(int, taskBarMEMSamples,                     20)
  XIV(int, focusRequestFlashTime,                 0)
+ XIV(int, focusRequestFlashInterval,             250)
  XIV(int, nestedThemeMenuMinNumber,              15)
- XIV(int, batteryPollingPeriod,                  10)
-@@ -160,6 +162,7 @@ XSV(const char *, logoutCancelCommand,          0)
+@@ -181,6 +183,7 @@ XSV(const char *, logoutCancelCommand,          0)
  XSV(const char *, shutdownCommand,              0)
  XSV(const char *, rebootCommand,                0)
  XIV(int, taskBarCPUDelay,                       500)
@@ -392,15 +375,15 @@ index e967e64..02460c0 100644
  XIV(int, taskBarNetSamples,                     20)
  XIV(int, taskBarNetDelay,                       500)
  XSV(const char *, cpuCommand,                   "xterm -name top -title Process\\ Status -e top")
-@@ -274,6 +277,7 @@ cfoption icewm_preferences[] = {
-     OBV("TaskBarShowStartMenu",                 &taskBarShowStartMenu,          "Show 'Start' menu on task bar"),
-     OBV("TaskBarShowWindowListMenu",            &taskBarShowWindowListMenu,     "Show 'window list' menu on task bar"),
-     OBV("TaskBarShowCPUStatus",                 &taskBarShowCPUStatus,          "Show CPU status on task bar (Linux             & Solaris)"),
+@@ -305,6 +308,7 @@ cfoption icewm_preferences[] = {
+     OBV("CPUStatusShowSwapUsage",               &cpustatusShowSwapUsage,        "Show swap usage in CPU status tool tip"),
+     OBV("CPUStatusShowAcpiTemp",                &cpustatusShowAcpiTemp,         "Show ACPI temperature in CPU status tool tip"),
+     OBV("CPUStatusShowCpuFreq",                 &cpustatusShowCpuFreq,          "Show CPU frequency in CPU status tool tip"),
 +    OBV("TaskBarShowMEMStatus",                 &taskBarShowMEMStatus,          "Show memory usage status on task bar (Linux only)"),
      OBV("TaskBarShowNetStatus",                 &taskBarShowNetStatus,          "Show network status on task bar (Linux only)"),
      OBV("TaskBarShowCollapseButton",            &taskBarShowCollapseButton,     "Show a button to collapse the taskbar"),
      OBV("TaskBarDoubleHeight",                  &taskBarDoubleHeight,           "Use double-height task bar"),
-@@ -338,8 +342,10 @@ cfoption icewm_preferences[] = {
+@@ -375,8 +379,10 @@ cfoption icewm_preferences[] = {
      OIV("MsgBoxDefaultAction",                  &msgBoxDefaultAction, 0, 1,     "Preselect to Cancel (0) or the OK (1) button in message boxes"),
      OIV("MailCheckDelay",                       &mailCheckDelay, 0, (3600*24),  "Delay between new-mail checks. (seconds)"),
  #ifdef CONFIG_TASKBAR
@@ -413,10 +396,10 @@ index e967e64..02460c0 100644
      OIV("TaskBarNetDelay",                      &taskBarNetDelay, 10, (60*60*1000),    "Delay between Net Monitor samples in ms"),
      OIV("TaskbarButtonWidthDivisor",            &taskBarButtonWidthDivisor, 1, 25, "default number of tasks in taskbar"),
 diff --git a/src/themable.h b/src/themable.h
-index ad6a7ce..383d776 100644
+index 82f17cf..57af602 100644
 --- a/src/themable.h
 +++ b/src/themable.h
-@@ -140,6 +140,10 @@ XSV(const char *, clrCpuIoWait,                 "rgb:60/00/60")
+@@ -143,6 +143,10 @@ XSV(const char *, clrCpuIoWait,                 "rgb:60/00/60")
  XSV(const char *, clrCpuSoftIrq,                "rgb:00/FF/FF")
  XSV(const char *, clrCpuNice,                   "rgb:00/00/FF")
  XSV(const char *, clrCpuIdle,                   "rgb:00/00/00")
@@ -427,21 +410,21 @@ index ad6a7ce..383d776 100644
  XSV(const char *, clrNetSend,                   "rgb:FF/FF/00")
  XSV(const char *, clrNetReceive,                "rgb:FF/00/FF")
  XSV(const char *, clrNetIdle,                   "rgb:00/00/00")
-@@ -310,6 +314,12 @@ cfoption icewm_themable_preferences[] = {
+@@ -316,6 +320,12 @@ cfoption icewm_themable_preferences[] = {
      OSV("ColorCPUStatusNice",                   &clrCpuNice,                    "Nice load on the CPU monitor"),
      OSV("ColorCPUStatusIdle",                   &clrCpuIdle,                    "Idle (non) load on the CPU monitor, leave empty to force transparency"),
- #endif    
+ #endif
 +#ifdef CONFIG_APPLET_MEM_STATUS
 +    OSV("ColorMEMStatusUser",                   &clrMemUser,                    "User program usage in the memory monitor"),
 +    OSV("ColorMEMStatusBuffers",                &clrMemBuffers,                 "OS buffers usage in the memory monitor"),
 +    OSV("ColorMEMStatusCached",                 &clrMemCached,                  "OS cached usage in the memory monitor"),
 +    OSV("ColorMEMStatusFree",                   &clrMemFree,                    "Free memory in the memory monitor"),
-+#endif    
++#endif
  #ifdef CONFIG_APPLET_NET_STATUS
      OSV("ColorNetSend",                         &clrNetSend,                    "Outgoing load on the network monitor"),
      OSV("ColorNetReceive",                      &clrNetReceive,                 "Incoming load on the network monitor"),
 diff --git a/src/wmtaskbar.cc b/src/wmtaskbar.cc
-index 1a86ce7..69f2259 100644
+index 1e6f7a3..e8a39d2 100644
 --- a/src/wmtaskbar.cc
 +++ b/src/wmtaskbar.cc
 @@ -28,6 +28,7 @@
@@ -452,7 +435,7 @@ index 1a86ce7..69f2259 100644
  #include "apppstatus.h"
  #include "amailbox.h"
  #include "objbar.h"
-@@ -423,6 +424,12 @@ void TaskBar::initMenu() {
+@@ -439,6 +440,12 @@ void TaskBar::initMenu() {
  }
  
  void TaskBar::initApplets() {
@@ -464,8 +447,8 @@ index 1a86ce7..69f2259 100644
 +#endif
  #ifdef CONFIG_APPLET_CPU_STATUS
      if (taskBarShowCPUStatus)
-         fCPUStatus = new CPUStatus(this);
-@@ -610,6 +617,9 @@ void TaskBar::updateLayout(int &size_w, int &size_h) {
+         fCPUStatus = new CPUStatus(smActionListener, this, cpustatusShowRamUsage, cpustatusShowSwapUsage,
+@@ -635,6 +642,9 @@ void TaskBar::updateLayout(int &size_w, int &size_h) {
  #ifdef CONFIG_APPLET_CPU_STATUS
          { fCPUStatus, false, 1, true, 2, 2, false },
  #endif
@@ -476,7 +459,7 @@ index 1a86ce7..69f2259 100644
  #ifdef CONFIG_APPLET_MAILBOX
          { fNetStatus ? fNetStatus[0] : 0, false, 1, false, 1, 1, false },
 diff --git a/src/wmtaskbar.h b/src/wmtaskbar.h
-index 55f236b..6166c84 100644
+index 293a893..f4fb98a 100644
 --- a/src/wmtaskbar.h
 +++ b/src/wmtaskbar.h
 @@ -9,6 +9,9 @@
@@ -489,7 +472,7 @@ index 55f236b..6166c84 100644
  #if CONFIG_APPLET_CPU_STATUS
  class CPUStatus;
  #endif
-@@ -125,6 +128,9 @@ private:
+@@ -150,6 +153,9 @@ private:
  #ifdef CONFIG_APPLET_MAILBOX
      MailBoxStatus **fMailBoxStatus;
  #endif
