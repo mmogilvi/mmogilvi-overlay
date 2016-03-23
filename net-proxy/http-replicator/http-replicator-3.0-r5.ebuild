@@ -1,10 +1,10 @@
-# Copyright 1999-2014 Gentoo Foundation
+# Copyright 1999-2016 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/net-proxy/http-replicator/http-replicator-3.0-r4.ebuild,v 1.5 2014/04/05 07:05:35 pacho Exp $
+# $Id$
 
-EAPI=4
-PYTHON_DEPEND="2:2.7:2.7" # not 2.6 bug #33907, not 3.0 bug #411083
-inherit eutils python systemd
+EAPI=6
+PYTHON_COMPAT=( python2_7 ) # not 2.6 bug #33907, not 3.0 bug #411083
+inherit eutils python-single-r1 systemd
 
 MY_P="${PN}_${PV}"
 
@@ -29,11 +29,15 @@ src_compile() {
 }
 
 src_install(){
+	python-single-r1_pkg_setup
+
 	# Daemon and repcacheman into /usr/bin
+	python_scriptinto /usr/bin
+	python_doexe http-replicator
+	python_newexe "${FILESDIR}/http-replicator-3.0-repcacheman-0.44-r2" repcacheman.py
+
 	exeinto /usr/bin
-	doexe http-replicator
 	newexe "${FILESDIR}/http-replicator-3.0-callrepcacheman-0.1" repcacheman
-	newexe "${FILESDIR}/http-replicator-3.0-repcacheman-0.44-r2" repcacheman.py
 
 	# init.d scripts
 	newinitd "${FILESDIR}/http-replicator-3.0.init" http-replicator
@@ -41,9 +45,6 @@ src_install(){
 
 	systemd_dounit "${FILESDIR}"/http-replicator.service
 	systemd_install_serviced "${FILESDIR}"/http-replicator.service.conf
-
-	# not 2.6 bug #33907, not 3.0 bug #411083
-	python_convert_shebangs -r 2.7 "${ED}"
 
 	# Docs
 	dodoc README debian/changelog
@@ -80,8 +81,8 @@ pkg_postinst() {
 	elog "  the relevant file from the cache, or temporarily comment"
 	elog "  out the http_proxy setting.  Commenting only requires"
 	elog "  access to client config, not server cache."
-	elog "- Make sure GENTOO_MIRRORS in /etc/make.conf starts with several"
-	elog "  good http mirrors."
+	elog "- Make sure GENTOO_MIRRORS in /etc/portage/make.conf starts"
+	elog "  with several good http mirrors."
 	elog
 	elog "For more information please refer to the following forum thread:"
 	elog "  http://forums.gentoo.org/viewtopic-t-173226.html"
