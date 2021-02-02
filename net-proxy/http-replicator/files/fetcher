@@ -1,0 +1,74 @@
+#!/bin/sh
+
+# Copyright (C) 2015-2019 Matthew Ogilvie  [mmogilvi+gnto / zoho dot com]
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+# Usage: fetcher [-c] -O FILE URL
+#   Wraps wget, and conditionally adds X-unique-cache-name header
+#   to HTTP request only if potentially useful.
+#
+#/etc/portage/make.conf:
+# FETCHCOMMAND="/etc/portage/fetcher -O \"\${DISTDIR}/\${FILE}\" \"\${URI}\""
+# RESUMECOMMAND="/etc/portage/fetcher -c -O \"\${DISTDIR}/\${FILE}\" \"\${URI}\""
+
+f_args="-t 3 -T 60 --passive-ftp"
+f_file=
+f_url=
+f_help=
+
+while [ x"$1" != x"" ] ; do
+  case "$1" in
+    -O )
+      f_file="$2"
+      shift
+    ;;
+    -c )
+      f_args="$1 $f_args"
+    ;;
+    -* )
+      echo "Unknown option: $1" 1>&2
+      f_help=1
+    ;;
+    * )
+      f_url="$1"
+  esac
+  shift
+done
+
+if [ x"$f_file" = x"" -o x"$f_url" = x"" ] ; then
+  echo "Missing FILE and/or URL" 1>&2
+  f_help=1
+fi
+
+if [ x"$f_help" != x"" ] ; then
+  echo "Usage: $0 [-c] -O FILE URL" 1>&2
+  exit 1
+fi
+
+extraHeader=
+if [ x"$http_proxy" != x"" ] ; then
+  baseFile="$(basename "${f_file%.__download__}")"
+  if [ x"$(basename "$f_url")" != x"$baseFile" ] ; then
+    extraHeader="X-unique-cache-name: $baseFile"
+  fi
+fi
+
+if [ x"$extraHeader" != x"" ] ; then
+  echo "Adding '$extraHeader' to request" 1>&2
+  exec wget $f_args -O "$f_file" --header="$extraHeader" "$f_url"
+else
+  exec wget $f_args -O "$f_file" "$f_url"
+fi

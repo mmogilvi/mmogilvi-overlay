@@ -1,0 +1,88 @@
+-----------
+SERVER config:
+-----------
+
+- Configure /etc/conf.d/http-replicator as desired, and if
+  you change the cache dir, adjust below as well.
+
+- Setup the cache:
+   - NEW: Create the /var/cache/http-replicator directory and
+     set ownership and permissions to portage:portage and 755.
+   - OBSOLETE: Run /usr/bin/repcacheman to set up the cache.
+
+- Arrange to periodically clean up the local
+  /usr/portage/distfiles directory (sometimes under /var/cache/distfiles).
+   - NEW: Adapt and use EXAMPLE server cleanup script fragment at the
+     end of this documentation (fix paths, etc).
+   - OBSOLETE: Use repcacheman (requires python2 and portage built
+     with python2 internal support)
+
+- Arrange to periodically run something like the following
+  on this server.  'eclean' is in app-portage/gentoolkit.
+    ( export DISTDIR=/var/cache/http-replicator/
+      eclean -i distfiles )
+
+-----------
+CLIENT config (must be done on every client):
+-----------
+
+- Configure to download via http-replicator proxy server:
+   - DEPRECATED: Add http_proxy="http://serveraddress:8080" to make.conf on
+     the server as well as on the client machines.
+      - GOTCHA: With this, you'll to run (http_proxy="" emerge --sync)
+        to bypass cache for gpg key synchronization.
+   - NEW: The best (but still not ideal) workaround I've found to avoid
+     the above manual workaround is:
+      - Create /etc/portage/env/http_proxy.conf
+      - Add "*/*::gentoo http_proxy.conf" to /etc/portage/package.env
+      - Also add similar for any other overlays you have configured.
+        Don't forget any!
+      - NOTE: "*/*::* http_proxy.conf" and similar wildcard ideas
+        do not seem to work.  Either they aren't supported at all and
+        report a warning from emerge, or they apply too globally
+        (including gpg key refresh).
+
+- Make sure FETCHCOMMAND adds the X-unique-cache-name header to
+  HTTP requests in make.conf (or maybe portage will add it to
+  the default make.globals someday).
+
+   - NEW example: Copy the fetcher script to each client (perhaps
+     /etc/portage/fetcher?), and make sure it is executable, and then:
+        FETCHCOMMAND="/etc/portage/fetcher -O \"\${DISTDIR}/\${FILE}\" \"\${URI}\""
+        RESUMECOMMAND="/etc/portage/fetcher -c -O \"\${DISTDIR}/\${FILE}\" \"\${URI}\""
+   - OBSOLETE example (doesn't handle the temporary suffix added by
+     newer portage):
+        FETCHCOMMAND="wget -t 3 -T 60 --passive-ftp -O \"\${DISTDIR}/\${FILE}\" --header=\"X-unique-cache-name: \${FILE}\" \"\${URI}\""
+        RESUMECOMMAND="wget -c -t 3 -T 60 --passive-ftp -O \"\${DISTDIR}/\${FILE}\" --header=\"X-unique-cache-name: \${FILE}\" \"\${URI}\"
+
+- Make sure GENTOO_MIRRORS in /etc/portage/make.conf starts
+  with several good http mirrors.
+
+-----------
+GENERAL NOTES:
+-----------
+
+Even with FETCHCOMMAND fixing most cases, occasionally
+an older invalid version of a file may end up in the cache,
+causing checksum failures when portage tries to fetch
+it.  To recover, either use eclean (above), manually delete
+the relevant file from the cache, or temporarily comment
+out the http_proxy setting.  Commenting only requires
+access to client config, not server cache.
+
+For more information please refer to the following forum thread:
+  http://forums.gentoo.org/viewtopic-t-173226.html
+
+-----------
+EXAMPLE server cleanup script fragment:
+-----------
+
+    # NOTE: Incorporate into a shell script, fix paths, etc.
+
+    cleanDistDir=/usr/portage/distfiles
+    cleanCacheDir=/var/cache/http-replicator
+    for file in "$cleanDistDir"/* ; do
+      if cmp -s "$file" "$cleanCacheDir/$(basename "$file")" ; then
+        rm "$file"
+      fi
+    done
