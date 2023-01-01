@@ -1,9 +1,9 @@
 # Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=8
 
-inherit autotools eutils multilib multilib-minimal
+inherit autotools multilib multilib-minimal
 
 DESCRIPTION="xoauth2 plugin for cyrus-sasl"
 HOMEPAGE="https://github.com/moriyoshi/cyrus-sasl-xoauth2"
@@ -47,6 +47,10 @@ multilib_src_install() {
 	#   clear that that would be useful for anything; things using
 	#   sasl would probably have to explicitly statically link
 	#   this specific plugin.
-	[[ $(get_modname) != .so ]] || \
-		prune_libtool_files --modules
+        # The get_modname bit is important: do not remove the .la files on
+        # platforms where the lib isn't called .so for cyrus searches the .la to
+        # figure out what the name is supposed to be instead
+        if [[ $(get_modname) == .so ]] ; then
+                find "${ED}" -name "*.la" -delete || die
+        fi
 }
