@@ -1,5 +1,16 @@
 This is Matthew Ogilvie's personally maintained gentoo overlay.
 Mostly custom patches.  Some of them are outdated.
 
-After editting ebuild and files, use the following to update manifest:
+It probably doesn't have all the meta data it ought to have
+to really be "published".  It also doesn't have an overarching
+theme other than "whatever customizations I happen to need".
+So in general, if part of it looks useful to you, I would
+recommend copying just that part into your own overlay, rather
+than cloning the whole overlay.
+
+If I only need something on one machine on a temporary basis,
+I often won't even commit it.
+
+Reminder to self: After editting ebuild and files, use the following to
+update manifest:
    ebuild foo.ebuild digest
