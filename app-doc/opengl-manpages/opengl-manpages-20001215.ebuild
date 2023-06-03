@@ -2,6 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/app-doc/opengl-manpages/opengl-manpages-20001215.ebuild,v 1.15 2009/07/14 09:43:26 flameeyes Exp $
 
+EAPI=4
 DESCRIPTION="Man pages for OpenGL"
 HOMEPAGE="http://www.opengl.org/documentation/specs/"
 RESTRICT="mirror"
