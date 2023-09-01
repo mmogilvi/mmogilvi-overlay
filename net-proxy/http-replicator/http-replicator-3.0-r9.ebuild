@@ -1,9 +1,9 @@
 # Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
+EAPI=8
 
-inherit eutils systemd
+inherit systemd
 # Don't inherit gentoo python stuff that no longer supports python2
 
 MY_P="${PN}_${PV}"
